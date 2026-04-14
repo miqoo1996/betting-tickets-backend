@@ -13,17 +13,55 @@ class OddsController extends Controller
      */
     public function index(Request $request)
     {
-        // Get upcoming scheduled matches with their odds
-        $matches = SportsMatch::where('status', 'scheduled')
-            ->where('league', 'Premier League') // You can parameterize this
-            ->orderBy('commence_time', 'asc')
+        $league = $request->get('league');
+        $search = $request->get('search');
+        $dateFrom = $request->get('date_from');
+        $dateTo = $request->get('date_to');
+        $sortBy = $request->get('sort_by', 'commence_time');
+        $sortOrder = $request->get('sort_order', 'asc');
+        $limit = $request->get('limit', 20);
+
+        // Get scheduled matches with their odds
+        $query = SportsMatch::where('status', 'scheduled')
             ->with(['odds' => function ($query) {
                 // Get odds from all sources (or latest)
                 $query->select('match_odds.*')
                     ->groupBy('match_id', 'odds_type')
                     ->orderBy('created_at', 'desc');
-            }])
-            ->paginate(20);
+            }]);
+
+        // Filter by league if specified
+        if ($league) {
+            $query->where('league', $league);
+        }
+
+        // Advanced search functionality
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('home_team', 'LIKE', "%{$search}%")
+                  ->orWhere('away_team', 'LIKE', "%{$search}%")
+                  ->orWhere('league', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Date range filtering
+        if ($dateFrom) {
+            $query->whereDate('commence_time', '>=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $query->whereDate('commence_time', '<=', $dateTo);
+        }
+
+        // Sorting
+        $allowedSortFields = ['commence_time', 'home_team', 'away_team', 'league'];
+        if (in_array($sortBy, $allowedSortFields)) {
+            $query->orderBy($sortBy, $sortOrder === 'desc' ? 'desc' : 'asc');
+        } else {
+            $query->orderBy('commence_time', 'asc');
+        }
+
+        $matches = $query->paginate($limit);
 
         // Transform matches into the format expected by the frontend
         $formattedMatches = $matches->getCollection()->map(function ($match) {
@@ -113,6 +151,46 @@ class OddsController extends Controller
             'X' => 'Draw',
             '2' => 'Away Win',
             default => 'Unknown',
+        };
+    }
+
+    /**
+     * Get available leagues
+     */
+    public function leagues()
+    {
+        $leagues = SportsMatch::select('league')
+            ->where('status', 'scheduled')
+            ->distinct()
+            ->orderBy('league')
+            ->pluck('league')
+            ->map(function ($league) {
+                return [
+                    'name' => $league,
+                    'display_name' => $this->getLeagueDisplayName($league),
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $leagues,
+        ]);
+    }
+
+    /**
+     * Get league display name
+     */
+    private function getLeagueDisplayName(string $league): string
+    {
+        return match ($league) {
+            'Premier League' => 'Premier League',
+            'La Liga' => 'La Liga',
+            'Bundesliga' => 'Bundesliga',
+            'Serie A' => 'Serie A',
+            'Ligue 1' => 'Ligue 1',
+            'Champions League' => 'UEFA Champions League',
+            'Europa League' => 'UEFA Europa League',
+            default => $league,
         };
     }
 }

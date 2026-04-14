@@ -57,21 +57,65 @@ class OddsApiService
         $url = $source->api_url;
         $apiKey = $source->api_key;
 
-        // Construct API endpoint for soccer odds
-        $endpoint = "{$url}/sports/soccer_epl/odds";
+        // Football leagues to fetch odds for
+        $footballSports = [
+            'soccer_epl',      // Premier League
+            'soccer_spain_la_liga',  // La Liga
+            'soccer_germany_bundesliga',  // Bundesliga
+            'soccer_italy_serie_a',  // Serie A
+            'soccer_france_ligue_one',  // Ligue 1
+            'soccer_uefa_champs_league',  // Champions League
+            'soccer_uefa_europa_league',  // Europa League
+        ];
 
-        $response = Http::get($endpoint, [
-            'apiKey' => $apiKey,
-            'regions' => 'eu',
-            'markets' => 'h2h', // Head-to-head markets (1x2)
-            'oddsFormat' => 'decimal',
-        ]);
+        $allMatches = [];
 
-        if (!$response->successful()) {
-            throw new \Exception('Failed to fetch odds from API: ' . $response->status());
+        foreach ($footballSports as $sport) {
+            try {
+                $endpoint = "{$url}/sports/{$sport}/odds";
+
+                logger()->info("Fetching odds for {$sport} from: {$endpoint}");
+
+                $response = Http::get($endpoint, [
+                    'apiKey' => $apiKey,
+                    'regions' => 'eu',
+                    'markets' => 'h2h', // Head-to-head markets (1x2)
+                    'oddsFormat' => 'decimal',
+                ]);
+
+                logger()->info("Response status for {$sport}: " . $response->status());
+                logger()->info("Response body length for {$sport}: " . strlen($response->body()));
+
+                if (!$response->successful()) {
+                    logger()->warning("Failed to fetch {$sport}: " . $response->status());
+                    logger()->warning("Response body: " . $response->body());
+                    continue;
+                }
+
+                $jsonData = $response->json();
+                logger()->info("JSON response keys for {$sport}: " . json_encode(array_keys($jsonData)));
+
+                // The API returns an array of matches directly, not wrapped in a 'data' key
+                $matches = is_array($jsonData) ? $jsonData : [];
+                logger()->info("Found " . count($matches) . " matches for {$sport}");
+
+                if (count($matches) > 0) {
+                    logger()->info("Sample match data: " . json_encode($matches[0]));
+                }
+
+                $allMatches = array_merge($allMatches, $matches);
+
+                // Add small delay to avoid rate limiting
+                sleep(1);
+
+            } catch (\Exception $e) {
+                logger()->error("Error fetching {$sport}: " . $e->getMessage());
+                continue;
+            }
         }
 
-        return $response->json('data', []);
+        logger()->info("Total matches collected: " . count($allMatches));
+        return $allMatches;
     }
 
     /**
@@ -82,7 +126,7 @@ class OddsApiService
         return SportsMatch::updateOrCreate(
             ['external_id' => $apiMatch['id']],
             [
-                'league' => 'Premier League',
+                'league' => $this->mapLeague($apiMatch['sport_key']),
                 'home_team' => $apiMatch['home_team'],
                 'away_team' => $apiMatch['away_team'],
                 'commence_time' => Carbon::parse($apiMatch['commence_time']),
@@ -167,6 +211,24 @@ class OddsApiService
         ];
 
         return $statusMap[$apiStatus] ?? 'scheduled';
+    }
+
+    /**
+     * Map API sport key to league name
+     */
+    private function mapLeague(string $sportKey): string
+    {
+        $leagueMap = [
+            'soccer_epl' => 'Premier League',
+            'soccer_spain_la_liga' => 'La Liga',
+            'soccer_germany_bundesliga' => 'Bundesliga',
+            'soccer_italy_serie_a' => 'Serie A',
+            'soccer_france_ligue_one' => 'Ligue 1',
+            'soccer_uefa_champs_league' => 'Champions League',
+            'soccer_uefa_europa_league' => 'Europa League',
+        ];
+
+        return $leagueMap[$sportKey] ?? ucfirst(str_replace(['soccer_', '_'], ['', ' '], $sportKey));
     }
 
     /**

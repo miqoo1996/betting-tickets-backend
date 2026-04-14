@@ -16,6 +16,7 @@ Route::get('/test', function () {
 // Public odds routes
 Route::get('/odds', [OddsController::class, 'index']);
 Route::get('/odds/{id}', [OddsController::class, 'show']);
+Route::get('/leagues', [OddsController::class, 'leagues']);
 
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);
