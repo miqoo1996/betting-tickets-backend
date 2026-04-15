@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Console\Commands\MatchOdd;
+use App\Models\MatchOdd;
 use App\Models\OddsSource;
 use App\Models\SportsMatch;
 use Carbon\Carbon;

@@ -1,9 +1,7 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Models;
 
-use App\Models\OddsSource;
-use App\Models\SportsMatch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 

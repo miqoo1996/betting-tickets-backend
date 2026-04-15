@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\MatchOdd;
-use App\Models\OdsSource;
+use App\Models\OddsSource;
 use App\Models\OddsSyncLog;
 use App\Models\SportsMatch;
 
