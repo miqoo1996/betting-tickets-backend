@@ -2,12 +2,11 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
-use App\Models\SportsMatch;
-use App\Models\MatchOdd;
+use App\Console\Commands\MatchOdd;
 use App\Models\OddsSource;
+use App\Models\SportsMatch;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class SportsMatchesSeeder extends Seeder
 {
@@ -18,7 +17,7 @@ class SportsMatchesSeeder extends Seeder
     {
         // Get the first odds source (the-odds-api.com)
         $oddsSource = OddsSource::first();
-        
+
         if (!$oddsSource) {
             return;
         }

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\SportsMatch;
-use App\Models\MatchOdd;
 use Illuminate\Http\Request;
 
 class OddsController extends Controller
@@ -21,13 +20,13 @@ class OddsController extends Controller
         $sortOrder = $request->get('sort_order', 'asc');
         $limit = $request->get('limit', 20);
 
-        // Get scheduled matches with their odds
+        // Get scheduled matches with their odds from all sources and bookmakers
         $query = SportsMatch::where('status', 'scheduled')
             ->with(['odds' => function ($query) {
-                // Get odds from all sources (or latest)
-                $query->select('match_odds.*')
-                    ->groupBy('match_id', 'odds_type')
-                    ->orderBy('created_at', 'desc');
+                // Load all odds with source information, sorted by type and then by odds value
+                $query->with('source')
+                    ->orderBy('odds_type')
+                    ->orderBy('odds_value', 'desc');
             }]);
 
         // Filter by league if specified
@@ -65,12 +64,20 @@ class OddsController extends Controller
 
         // Transform matches into the format expected by the frontend
         $formattedMatches = $matches->getCollection()->map(function ($match) {
+            // Group all odds by type, showing all bookmakers and sources
             $odds = $match->odds->groupBy('odds_type')->map(function ($oddsGroup) {
-                $latestOdd = $oddsGroup->first();
                 return [
-                    'type' => $latestOdd->odds_type,
-                    'name' => $this->getOddsTypeName($latestOdd->odds_type),
-                    'odds' => (float) $latestOdd->odds_value,
+                    'type' => $oddsGroup->first()->odds_type,
+                    'name' => $this->getOddsTypeName($oddsGroup->first()->odds_type),
+                    'bookmakers' => $oddsGroup->map(function ($odd) {
+                        return [
+                            'bookmaker' => $odd->bookmaker_name ?? 'Unknown Bookmaker',
+                            'odds' => (float) $odd->odds_value,
+                            'source' => $odd->source->name ?? 'Unknown Source',
+                            'source_id' => $odd->odds_source_id,
+                        ];
+                    })->unique('bookmaker')->values(),
+                    'best_odds' => (float) $oddsGroup->max('odds_value'),
                 ];
             })->values();
 
@@ -101,7 +108,9 @@ class OddsController extends Controller
      */
     public function show($id)
     {
-        $match = SportsMatch::with('odds')->find($id);
+        $match = SportsMatch::with(['odds' => function ($query) {
+            $query->with('source')->orderBy('odds_type')->orderBy('odds_value', 'desc');
+        }])->find($id);
 
         if (!$match) {
             return response()->json([
@@ -110,19 +119,21 @@ class OddsController extends Controller
             ], 404);
         }
 
-        // Group odds by type and get the latest from each source
+        // Group odds by type, showing all bookmakers from all sources
         $odds = $match->odds->groupBy('odds_type')->map(function ($oddsGroup) {
-            $latestOdd = $oddsGroup->first();
             return [
-                'type' => $latestOdd->odds_type,
-                'name' => $this->getOddsTypeName($latestOdd->odds_type),
-                'odds' => (float) $latestOdd->odds_value,
-                'sources' => $oddsGroup->map(function ($odd) {
+                'type' => $oddsGroup->first()->odds_type,
+                'name' => $this->getOddsTypeName($oddsGroup->first()->odds_type),
+                'best_odds' => (float) $oddsGroup->max('odds_value'),
+                'bookmakers' => $oddsGroup->map(function ($odd) {
                     return [
-                        'source' => $odd->source->name ?? 'Unknown',
-                        'value' => (float) $odd->odds_value,
+                        'bookmaker' => $odd->bookmaker_name ?? 'Unknown Bookmaker',
+                        'odds' => (float) $odd->odds_value,
+                        'source' => $odd->source->name ?? 'Unknown Source',
+                        'source_id' => $odd->odds_source_id,
+                        'updated_at' => $odd->updated_at->format('Y-m-d H:i:s'),
                     ];
-                })->values(),
+                })->unique('bookmaker')->values(),
             ];
         })->values();
 

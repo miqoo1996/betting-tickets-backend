@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'odds_api' => [
+        'key' => env('ODDS_API_KEY'),
+        'the_odds_key' => env('THE_ODDS_API_KEY'),
+    ],
+
 ];

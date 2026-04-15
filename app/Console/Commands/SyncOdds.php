@@ -70,7 +70,7 @@ class SyncOdds extends Command
                 $endTime = microtime(true);
                 $duration = round($endTime - $startTime, 2);
 
-                if ($result['success']) {
+                if ($result['status'] === 'success') {
                     $this->info("   ✅ Success! Synced {$result['matches_synced']} matches with {$result['odds_synced']} odds ({$duration}s)");
                     $totalMatches += $result['matches_synced'];
                     $totalOdds += $result['odds_synced'];

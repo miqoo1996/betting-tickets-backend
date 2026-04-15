@@ -91,6 +91,12 @@ class TheOddsApiService extends BaseOddsApiService
 
                 if (count($matches) > 0) {
                     logger()->info("Sample match data: " . json_encode($matches[0]));
+                    // Check if the match has bookmakers data
+                    if (isset($matches[0]['bookmakers'])) {
+                        logger()->info("Match has bookmakers: " . count($matches[0]['bookmakers']));
+                    } else {
+                        logger()->warning("Match does NOT have bookmakers data");
+                    }
                 }
 
                 $allMatches = array_merge($allMatches, $matches);
@@ -143,6 +149,7 @@ class TheOddsApiService extends BaseOddsApiService
                                     'type' => $type,
                                     'name' => $outcome['name'],
                                     'odds' => $outcome['price'],
+                                    'bookmaker' => $bookmaker['title'] ?? 'Unknown Bookmaker',
                                 ];
                             }
                         }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\OddsSource;
+use App\Models\SportsMatch;
 
 interface OddsApiInterface
 {

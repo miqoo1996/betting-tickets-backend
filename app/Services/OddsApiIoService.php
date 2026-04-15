@@ -49,13 +49,32 @@ class OddsApiIoService extends BaseOddsApiService
         $apiKey = $source->api_key;
 
         try {
-            // First, get football events
+            // First, get the list of available bookmakers
+            logger()->info("Getting list of available bookmakers");
+
+            $bookmakersResponse = Http::get("{$url}/bookmakers", [
+                'apiKey' => $apiKey,
+            ]);
+
+            $bookmakers = [];
+            if ($bookmakersResponse->successful()) {
+                $bookmakersData = $bookmakersResponse->json();
+                // Get first 5 active bookmakers
+                $bookmakers = array_slice(array_column(array_filter($bookmakersData, fn($b) => $b['active'] ?? false), 'name'), 0, 5);
+                logger()->info("Found bookmakers: " . implode(', ', $bookmakers));
+            } else {
+                logger()->warning("Failed to get bookmakers: " . $bookmakersResponse->status());
+                // Use some default bookmakers
+                $bookmakers = ['Bet365', 'Unibet', 'WilliamHill'];
+            }
+
+            // Then get football events
             logger()->info("Fetching football events from odds-api.io");
 
             $eventsResponse = Http::get("{$url}/events", [
                 'apiKey' => $apiKey,
                 'sport' => 'football',
-                'limit' => 100, // Get up to 100 events
+                'limit' => 2, // Start with just 2 events to test
             ]);
 
             logger()->info("Events response status: " . $eventsResponse->status());
@@ -83,7 +102,7 @@ class OddsApiIoService extends BaseOddsApiService
                     $oddsResponse = Http::get("{$url}/odds", [
                         'apiKey' => $apiKey,
                         'eventId' => $event['id'],
-                        'bookmakers' => 'Bet365,Unibet,WilliamHill,Pinnacle', // Common bookmakers
+                        'bookmakers' => implode(',', $bookmakers), // Use the retrieved bookmakers
                     ]);
 
                     if ($oddsResponse->successful()) {
@@ -158,6 +177,7 @@ class OddsApiIoService extends BaseOddsApiService
                             'type' => $type,
                             'name' => $outcome['name'],
                             'odds' => $outcome['price'],
+                            'bookmaker' => $bookmaker['name'] ?? 'Unknown Bookmaker',
                         ];
                     }
                 }
