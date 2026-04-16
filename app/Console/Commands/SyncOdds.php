@@ -53,6 +53,7 @@ class SyncOdds extends Command
 
         foreach ($sources as $source) {
             $this->info("📡 Syncing from: {$source->name}");
+            logger()->info("Processing source: {$source->name} with ID: {$source->id}");
 
             // Check if using demo key
             if ($source->api_key === 'demo_key') {
@@ -65,7 +66,9 @@ class SyncOdds extends Command
             $startTime = microtime(true);
 
             try {
+                logger()->info("Calling service->syncFootballOdds for {$source->name}");
                 $result = $service->syncFootballOdds($source);
+                logger()->info("Result for {$source->name}: " . json_encode($result));
 
                 $endTime = microtime(true);
                 $duration = round($endTime - $startTime, 2);
@@ -82,6 +85,7 @@ class SyncOdds extends Command
                 $endTime = microtime(true);
                 $duration = round($endTime - $startTime, 2);
                 $this->error("   💥 Error: " . $e->getMessage() . " ({$duration}s)");
+                logger()->error("Exception syncing {$source->name}: " . $e->getMessage());
             }
 
             $this->newLine();
