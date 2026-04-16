@@ -47,6 +47,7 @@ class OddsApiIoService extends BaseOddsApiService
     {
         $url = $source->api_url;
         $apiKey = $source->api_key;
+        $plan = env('ODDS_API_IO_PLAN', 'free');
 
         try {
             // First, get the list of available bookmakers
@@ -56,16 +57,22 @@ class OddsApiIoService extends BaseOddsApiService
                 'apiKey' => $apiKey,
             ]);
 
-            $bookmakers = [];
-            if ($bookmakersResponse->successful()) {
-                $bookmakersData = $bookmakersResponse->json();
-                // Get first 5 active bookmakers
-                $bookmakers = array_slice(array_column(array_filter($bookmakersData, fn($b) => $b['active'] ?? false), 'name'), 0, 5);
-                logger()->info("Found bookmakers: " . implode(', ', $bookmakers));
+            if ($plan === 'free') {
+                // Free plan: limited to 2 bookmakers
+                $bookmakers = ['Bet365', 'Unibet'];
+                $eventLimit = 2;
             } else {
-                logger()->warning("Failed to get bookmakers: " . $bookmakersResponse->status());
-                // Use some default bookmakers
+                // Paid plans: fetch more bookmakers
                 $bookmakers = ['Bet365', 'Unibet', 'WilliamHill'];
+                $eventLimit = 10; // Increase limit for paid
+                if ($bookmakersResponse->successful()) {
+                    $bookmakersData = $bookmakersResponse->json();
+                    // Get first 10 active bookmakers for paid
+                    $bookmakers = array_slice(array_column(array_filter($bookmakersData, fn($b) => $b['active'] ?? false), 'name'), 0, 10);
+                    logger()->info("Found bookmakers: " . implode(', ', $bookmakers));
+                } else {
+                    logger()->warning("Failed to get bookmakers: " . $bookmakersResponse->status());
+                }
             }
 
             // Then get football events
@@ -74,7 +81,7 @@ class OddsApiIoService extends BaseOddsApiService
             $eventsResponse = Http::get("{$url}/events", [
                 'apiKey' => $apiKey,
                 'sport' => 'football',
-                'limit' => 2, // Start with just 2 events to test
+                'limit' => $eventLimit,
             ]);
 
             logger()->info("Events response status: " . $eventsResponse->status());
@@ -92,19 +99,18 @@ class OddsApiIoService extends BaseOddsApiService
                 return [];
             }
 
+            if ($plan === 'free') {
+                // For free plan, only sync matches without odds
+                logger()->info("Free plan: syncing matches only");
+                return $events;
+            }
+
+            // For paid plans, fetch odds
             $allMatches = [];
 
             // For each event, get the odds
             foreach ($events as $event) {
                 try {
-                    logger()->info("Fetching odds for event ID: {$event['id']}");
-
-                    $oddsResponse = Http::get("{$url}/odds", [
-                        'apiKey' => $apiKey,
-                        'eventId' => $event['id'],
-                        'bookmakers' => implode(',', $bookmakers), // Use the retrieved bookmakers
-                    ]);
-
                     if ($oddsResponse->successful()) {
                         $oddsData = $oddsResponse->json();
 
