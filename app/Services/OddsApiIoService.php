@@ -111,6 +111,14 @@ class OddsApiIoService extends BaseOddsApiService
             // For each event, get the odds
             foreach ($events as $event) {
                 try {
+                    logger()->info("Fetching odds for event ID: {$event['id']}");
+
+                    $oddsResponse = Http::get("{$url}/odds", [
+                        'apiKey' => $apiKey,
+                        'eventId' => $event['id'],
+                        'bookmakers' => implode(',', $bookmakers), // Use the retrieved bookmakers
+                    ]);
+
                     if ($oddsResponse->successful()) {
                         $oddsData = $oddsResponse->json();
 

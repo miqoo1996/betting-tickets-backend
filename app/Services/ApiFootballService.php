@@ -87,11 +87,13 @@ class ApiFootballService extends BaseOddsApiService
                         'x-rapidapi-host' => 'v3.football.api-sports.io',
                     ])->get("{$url}/odds", [
                         'fixture' => $fixture['fixture']['id'],
-                        'bookmaker' => 2, // Bet365
+                        // 'bookmaker' => 2, // Try without specific bookmaker to see all
                     ]);
 
                     if ($oddsResponse->successful()) {
                         $oddsData = $oddsResponse->json();
+
+                        logger()->info("Odds response for fixture {$fixture['fixture']['id']}: " . json_encode($oddsData));
 
                         // Combine fixture data with odds data
                         $matchData = array_merge($fixture, ['odds_data' => $oddsData]);
@@ -99,7 +101,7 @@ class ApiFootballService extends BaseOddsApiService
 
                         logger()->info("Successfully got odds for fixture {$fixture['fixture']['id']}");
                     } else {
-                        logger()->warning("Failed to get odds for fixture {$fixture['fixture']['id']}: " . $oddsResponse->status());
+                        logger()->warning("Failed to get odds for fixture {$fixture['fixture']['id']}: " . $oddsResponse->status() . " - " . $oddsResponse->body());
                     }
 
                     // Small delay to avoid rate limiting
