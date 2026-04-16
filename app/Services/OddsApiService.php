@@ -19,6 +19,9 @@ class OddsApiService
         } elseif (str_contains($source->api_url, 'the-odds-api.com')) {
             logger()->info("Using TheOddsApiService");
             return new TheOddsApiService();
+        } elseif (str_contains($source->api_url, 'football.api-sports.io')) {
+            logger()->info("Using ApiFootballService");
+            return new ApiFootballService();
         } else {
             throw new \InvalidArgumentException("Unsupported API provider: {$source->api_url}");
         }

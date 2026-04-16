@@ -36,6 +36,18 @@ class OddsSourceSeeder extends Seeder
                 'description' => 'The Odds API - Sports betting odds from multiple bookmakers',
             ]
         );
+
+        // Update or create api-football.com source
+        OddsSource::updateOrCreate(
+            ['name' => 'api-football.com'],
+            [
+                'api_url' => 'https://v3.football.api-sports.io',
+                'api_key' => env('API_FOOTBALL_KEY', 'demo_key'),
+                'is_active' => true,
+                'sync_interval_minutes' => 60,
+                'description' => 'API-Football.com - Football data and betting odds',
+            ]
+        );
     }
 }
 
