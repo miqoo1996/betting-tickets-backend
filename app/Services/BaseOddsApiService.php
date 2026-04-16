@@ -17,16 +17,24 @@ abstract class BaseOddsApiService implements OddsApiInterface
         // Extract match data - to be implemented by subclasses
         $matchData = $this->extractMatchData($apiMatch);
 
+        if (isset($matchData['date']) && !isset($matchData['commence_time'])) {
+            $matchData['commence_time'] = $matchData['date'];
+            unset($matchData['date']);
+        }
+
+        $validMatchData = array_intersect_key($matchData, array_flip([
+            'external_id',
+            'home_team',
+            'away_team',
+            'league',
+            'commence_time',
+            'status',
+            'synced_at',
+        ]));
+
         return SportsMatch::updateOrCreate(
             ['external_id' => $matchData['external_id']],
-            [
-                'match' => $matchData['match'],
-                'home_team' => $matchData['home_team'],
-                'away_team' => $matchData['away_team'],
-                'league' => $matchData['league'],
-                'date' => $matchData['date'],
-                'status' => $matchData['status'] ?? 'scheduled',
-            ]
+            $validMatchData
         );
     }
 
@@ -38,7 +46,10 @@ abstract class BaseOddsApiService implements OddsApiInterface
         $oddsData = $this->extractOddsData($apiMatch);
         $oddsSynced = 0;
 
+        logger()->info("Processing " . count($oddsData) . " odds for match " . $sportMatch->id);
+
         foreach ($oddsData as $oddData) {
+            logger()->info("Creating odd: type={$oddData['type']}, bookmaker={$oddData['bookmaker']}, odds={$oddData['odds']}");
             MatchOdd::updateOrCreate(
                 [
                     'match_id' => $sportMatch->id,
@@ -53,6 +64,7 @@ abstract class BaseOddsApiService implements OddsApiInterface
             $oddsSynced++;
         }
 
+        logger()->info("Synced " . $oddsSynced . " odds for match " . $sportMatch->id);
         return $oddsSynced;
     }
 

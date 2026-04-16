@@ -13,10 +13,13 @@ class TheOddsApiService extends BaseOddsApiService
      */
     public function syncFootballOdds(OddsSource $source): array
     {
+        logger()->info("Starting syncFootballOdds for " . $source->name);
         try {
             $matches = $this->fetchFromApi($source);
             $matchesSynced = 0;
             $oddsSynced = 0;
+
+            logger()->info("Fetched " . count($matches) . " matches from API");
 
             foreach ($matches as $apiMatch) {
                 try {
@@ -121,11 +124,10 @@ class TheOddsApiService extends BaseOddsApiService
     {
         return [
             'external_id' => $apiMatch['id'],
-            'match' => $apiMatch['home_team'] . ' vs ' . $apiMatch['away_team'],
             'home_team' => $apiMatch['home_team'],
             'away_team' => $apiMatch['away_team'],
             'league' => $this->mapSportToLeague($apiMatch['sport_key']),
-            'date' => Carbon::parse($apiMatch['commence_time'])->toDateTimeString(),
+            'commence_time' => Carbon::parse($apiMatch['commence_time'])->toDateTimeString(),
             'status' => 'scheduled',
         ];
     }
@@ -138,10 +140,12 @@ class TheOddsApiService extends BaseOddsApiService
         $oddsData = [];
 
         if (isset($apiMatch['bookmakers']) && is_array($apiMatch['bookmakers'])) {
+            logger()->info("Processing " . count($apiMatch['bookmakers']) . " bookmakers for match");
             foreach ($apiMatch['bookmakers'] as $bookmaker) {
                 if (isset($bookmaker['markets']) && is_array($bookmaker['markets'])) {
                     foreach ($bookmaker['markets'] as $market) {
                         if ($market['key'] === 'h2h' && isset($market['outcomes']) && is_array($market['outcomes'])) {
+                            logger()->info("Found h2h market with " . count($market['outcomes']) . " outcomes for bookmaker " . ($bookmaker['title'] ?? 'unknown'));
                             foreach ($market['outcomes'] as $outcome) {
                                 $type = $this->mapOutcomeToType($outcome['name'], $apiMatch['home_team'], $apiMatch['away_team']);
 
@@ -156,8 +160,11 @@ class TheOddsApiService extends BaseOddsApiService
                     }
                 }
             }
+        } else {
+            logger()->warning("No bookmakers found in match data");
         }
 
+        logger()->info("Extracted " . count($oddsData) . " odds for match");
         return $oddsData;
     }
 

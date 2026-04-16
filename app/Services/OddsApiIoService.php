@@ -142,11 +142,10 @@ class OddsApiIoService extends BaseOddsApiService
     {
         return [
             'external_id' => (string)$apiMatch['id'],
-            'match' => $apiMatch['home'] . ' vs ' . $apiMatch['away'],
             'home_team' => $apiMatch['home'],
             'away_team' => $apiMatch['away'],
             'league' => $apiMatch['league']['name'] ?? 'Unknown League',
-            'date' => Carbon::parse($apiMatch['date'])->toDateTimeString(),
+            'commence_time' => Carbon::parse($apiMatch['date'])->toDateTimeString(),
             'status' => $apiMatch['status'] ?? 'scheduled',
         ];
     }
