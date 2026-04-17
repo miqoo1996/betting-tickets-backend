@@ -19,14 +19,17 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',      // Vite dev server
         'http://localhost:3000',      // Alternative port
+        'http://localhost',           // Localhost with any port
         'http://127.0.0.1:5173',
         'http://127.0.0.1:3000',
+        'http://127.0.0.1',           // 127.0.0.1 with any port
+        'http://riverseainsurance.loc', // Local development domain
     ],
 
     'allowed_origins_patterns' => [
-        // Pattern for allowing any localhost origin
-        '#^http://localhost.*#',
-        '#^http://127\.0\.0\.1.*#',
+        // Pattern for allowing any localhost origin with any port
+        '#^http://localhost(:[0-9]+)?$#',
+        '#^http://127\.0\.0\.1(:[0-9]+)?$#',
     ],
 
     'allowed_headers' => ['*'],

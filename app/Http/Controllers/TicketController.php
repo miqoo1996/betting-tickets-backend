@@ -46,12 +46,12 @@ class TicketController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by', 'created_at');
         $sortOrder = $request->get('sort_order', 'desc');
-        
+
         $allowedSortFields = ['created_at', 'stake', 'total_odds', 'potential_winning', 'status'];
         if (!in_array($sortBy, $allowedSortFields)) {
             $sortBy = 'created_at';
         }
-        
+
         $sortOrder = strtolower($sortOrder) === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 

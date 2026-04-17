@@ -12,7 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(append: [
+        // CORS middleware for cross-origin requests
+        $middleware->api(prepend: [
             \Illuminate\Http\Middleware\HandleCors::class,
         ]);
     })

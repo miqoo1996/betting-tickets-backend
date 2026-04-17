@@ -35,30 +35,15 @@ class RegisterController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        // Create token with appropriate expiry based on remember_me flag
-        $rememberMe = $request->input('remember_me', false);
-        
-        if ($rememberMe) {
-            // Token expires in 30 days if remember me is checked
-            $expiredAt = now()->addDays(30);
-        } else {
-            // Token expires in 1 day if remember me is not checked  
-            $expiredAt = now()->addDay();
-        }
-        
-        $tokenResult = $user->createToken('API Token');
-        $token = $tokenResult->plainTextToken;
-        
-        // Update the token's expiry in database
-        $tokenResult->accessToken->expires_at = $expiredAt;
-        $tokenResult->accessToken->save();
+        // Generate JWT token for the newly created user
+        $token = Auth::guard('api')->fromUser($user);
 
         return response()->json([
             'success' => true,
             'message' => 'Registration successful! You can now log in.',
             'user' => $user,
             'token' => $token,
-            'expires_at' => $expiredAt
+            'token_type' => 'Bearer'
         ], 201);
     }
 }

@@ -19,7 +19,11 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/forgot-password', [ForgotPasswordController::class, 'forgotPassword']);
 Route::post('/reset-password', [ResetPasswordController::class, 'reset']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::get('/user-test', function (Request $request) {
+    return $request->user();
+});
+
+Route::middleware('auth:api')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     });

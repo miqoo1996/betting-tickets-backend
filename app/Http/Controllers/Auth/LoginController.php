@@ -27,7 +27,10 @@ class LoginController extends Controller
             );
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        $credentials = $request->only('email', 'password');
+        
+        // Attempt authentication with JWT guard
+        if (!$token = Auth::guard('api')->attempt($credentials)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Email or password is incorrect',
@@ -37,32 +40,14 @@ class LoginController extends Controller
             ], 401);
         }
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
         
-        // Create token with appropriate expiry based on remember_me flag
-        $rememberMe = $request->input('remember_me', false);
-        
-        if ($rememberMe) {
-            // Token expires in 30 days if remember me is checked
-            $expiredAt = now()->addDays(30);
-        } else {
-            // Token expires in 1 day if remember me is not checked  
-            $expiredAt = now()->addDay();
-        }
-        
-        $tokenResult = $user->createToken('API Token');
-        $token = $tokenResult->plainTextToken;
-        
-        // Update the token's expiry in database
-        $tokenResult->accessToken->expires_at = $expiredAt;
-        $tokenResult->accessToken->save();
-
         return response()->json([
             'success' => true,
             'message' => 'Welcome back! You have been logged in successfully.',
             'user' => $user,
             'token' => $token,
-            'expires_at' => $expiredAt
+            'token_type' => 'Bearer'
         ]);
     }
 }
