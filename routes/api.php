@@ -17,6 +17,7 @@ Route::get('/test', function () {
 Route::get('/odds', [OddsController::class, 'index']);
 Route::get('/odds/{id}', [OddsController::class, 'show']);
 Route::get('/leagues', [OddsController::class, 'leagues']);
+Route::get('/bookmakers', [OddsController::class, 'bookmakers']);
 
 Route::post('/register', [RegisterController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);

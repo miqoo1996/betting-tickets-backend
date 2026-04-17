@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\SportsMatch;
+use App\Models\MatchOdd;
 use Illuminate\Http\Request;
 
 class OddsController extends Controller
@@ -14,6 +15,7 @@ class OddsController extends Controller
     {
         $league = $request->get('league');
         $search = $request->get('search');
+        $bookmaker = $request->get('bookmaker');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
         $sortBy = $request->get('sort_by', 'commence_time');
@@ -22,11 +24,16 @@ class OddsController extends Controller
 
         // Get scheduled matches with their odds from all sources and bookmakers
         $query = SportsMatch::where('status', 'scheduled')
-            ->with(['odds' => function ($query) {
+            ->with(['odds' => function ($query) use ($bookmaker) {
                 // Load all odds with source information, sorted by type and then by odds value
                 $query->with('source')
                     ->orderBy('odds_type')
                     ->orderBy('odds_value', 'desc');
+                
+                // Filter by bookmaker if specified
+                if ($bookmaker) {
+                    $query->where('bookmaker_name', 'LIKE', "%{$bookmaker}%");
+                }
             }]);
 
         // Filter by league if specified
@@ -185,6 +192,29 @@ class OddsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $leagues,
+        ]);
+    }
+
+    /**
+     * Get available bookmakers
+     */
+    public function bookmakers()
+    {
+        $bookmakers = MatchOdd::select('bookmaker_name')
+            ->whereNotNull('bookmaker_name')
+            ->distinct()
+            ->orderBy('bookmaker_name')
+            ->pluck('bookmaker_name')
+            ->map(function ($bookmaker) {
+                return [
+                    'name' => $bookmaker,
+                    'display_name' => $bookmaker,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $bookmakers,
         ]);
     }
 
