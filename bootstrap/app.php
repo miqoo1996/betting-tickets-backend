@@ -30,4 +30,12 @@ return Application::configure(basePath: dirname(__DIR__))
                 'status_code' => 422,
             ], 422);
         });
+
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please provide a valid authentication token.',
+                'status_code' => 401,
+            ], 401);
+        });
     })->create();
