@@ -29,7 +29,7 @@ class OddsController extends Controller
                 $query->with('source')
                     ->orderBy('odds_type')
                     ->orderBy('odds_value', 'desc');
-                
+
                 // Filter by bookmaker if specified
                 if ($bookmaker) {
                     $query->where('bookmaker_name', 'LIKE', "%{$bookmaker}%");

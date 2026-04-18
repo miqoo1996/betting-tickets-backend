@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -32,11 +33,50 @@ return Application::configure(basePath: dirname(__DIR__))
             ], 422);
         });
 
-        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e) {
+        // Handle JWT Token Expired Exception
+        $exceptions->render(function (\Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated. Please provide a valid authentication token.',
+                'message' => 'Token has expired. Please login again.',
                 'status_code' => 401,
             ], 401);
+        });
+
+        // Handle JWT Invalid Token Exception
+        $exceptions->render(function (\Tymon\JWTAuth\Exceptions\TokenInvalidException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid token. Please login again.',
+                'status_code' => 401,
+            ], 401);
+        });
+
+        // Handle JWT Token Not Present Exception
+        $exceptions->render(function (\Tymon\JWTAuth\Exceptions\TokenBlacklistedException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token has been blacklisted. Please login again.',
+                'status_code' => 401,
+            ], 401);
+        });
+
+        // General JWT Exception
+        $exceptions->render(function (\Tymon\JWTAuth\Exceptions\JWTException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Authentication error: ' . $e->getMessage(),
+                'status_code' => 401,
+            ], 401);
+        });
+
+        // Handle Authentication Exception
+        $exceptions->render(function (AuthenticationException $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                    'status_code' => 401,
+                ], 401);
+            }
         });
     })->create();
