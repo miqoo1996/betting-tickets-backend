@@ -7,6 +7,7 @@ use App\Http\Responses\ValidationErrorResponse;
 use App\Models\User;
 use App\Traits\ValidatesWithFriendlyErrors;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class RegisterController extends Controller
