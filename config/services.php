@@ -40,4 +40,8 @@ return [
         'the_odds_key' => env('THE_ODDS_API_KEY'),
     ],
 
+    'game_forecast' => [
+        'key' => env('GAME_FORECAST_API_KEY'),
+    ],
+
 ];

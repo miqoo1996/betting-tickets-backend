@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\OddsController;
+use App\Http\Controllers\PredictionsController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -35,6 +36,12 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/odds/{id}', [OddsController::class, 'show']);
     Route::get('/leagues', [OddsController::class, 'leagues']);
     Route::get('/bookmakers', [OddsController::class, 'bookmakers']);
+
+    // AI predictions routes
+    Route::get('/ai-predictions', [PredictionsController::class, 'index']);
+    Route::get('/ai-predictions/{id}', [PredictionsController::class, 'show']);
+    Route::get('/ai-leagues', [PredictionsController::class, 'leagues']);
+    Route::get('/ai-teams', [PredictionsController::class, 'teams']);
 
     // Ticket routes
     Route::get('/tickets', [TicketController::class, 'index']);
