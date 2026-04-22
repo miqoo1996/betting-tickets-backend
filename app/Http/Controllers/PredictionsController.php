@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GfEvent;
 use App\Services\GameForecastService;
 use Illuminate\Http\Request;
 
@@ -90,36 +91,34 @@ class PredictionsController extends Controller
 
     // -------------------------------------------------------------------------
 
-    private function formatEvent(array $event, bool $full): array
+    private function formatEvent(GfEvent $event, bool $full): array
     {
-        $prediction = $event['predictions'][0] ?? null;
-
         $base = [
-            'id'          => $event['id'],
-            'match'       => "{$event['team_home']['name']} vs {$event['team_away']['name']}",
-            'home_team'   => $event['team_home']['name'],
-            'home_team_id'=> $event['team_home']['id'],
-            'away_team'   => $event['team_away']['name'],
-            'away_team_id'=> $event['team_away']['id'],
-            'league'      => $event['league']['name'] ?? null,
-            'league_id'   => $event['league']['id'] ?? null,
-            'date'        => $event['start_at'],
-            'status'      => $event['status_code'],
-            'round'       => $event['round'] ?? null,
+            'id'           => $event->external_id,
+            'match'        => "{$event->homeTeam->name} vs {$event->awayTeam->name}",
+            'home_team'    => $event->homeTeam->name,
+            'home_team_id' => $event->homeTeam->external_id,
+            'away_team'    => $event->awayTeam->name,
+            'away_team_id' => $event->awayTeam->external_id,
+            'league'       => $event->league->name,
+            'league_id'    => $event->league->external_id,
+            'date'         => $event->start_at?->toISOString(),
+            'status'       => $event->status_code,
+            'round'        => $event->round,
         ];
 
-        if ($prediction) {
-            $base['ai_predictions'] = $this->formatPredictions($prediction, $full);
+        if ($event->prediction) {
+            $base['ai_predictions'] = $this->formatPredictions($event->prediction, $full);
         }
 
         return $base;
     }
 
-    private function formatPredictions(array $p, bool $full): array
+    private function formatPredictions(\App\Models\GfPrediction $p, bool $full): array
     {
-        $matchResult = $p['match_result'] ?? [];
-        $totalGoals  = $p['total_goals'] ?? [];
-        $btts        = $p['both_teams_score'] ?? [];
+        $matchResult = $p->match_result ?? [];
+        $totalGoals  = $p->total_goals ?? [];
+        $btts        = $p->both_teams_score ?? [];
 
         $result = [
             'match_result' => [
@@ -148,14 +147,14 @@ class PredictionsController extends Controller
                 'under_2_5' => $totalGoals['under_2_5'] ?? null,
                 'under_3_5' => $totalGoals['under_3_5'] ?? null,
             ], fn ($v) => $v !== null),
-            'recommended_bets' => $this->formatRecommendedBets($p['recommended_bets'] ?? []),
-            'reasoning'        => $p['reasoning']['en'] ?? null,
+            'recommended_bets' => $this->formatRecommendedBets($p->recommended_bets ?? []),
+            'reasoning'        => $p->reasoning['en'] ?? null,
         ];
 
         if ($full) {
-            $result['home_team_goals'] = $p['home_team_goals'] ?? null;
-            $result['away_team_goals'] = $p['away_team_goals'] ?? null;
-            $result['exact_score']     = $p['exact_score'] ?? null;
+            $result['home_team_goals'] = $p->home_team_goals;
+            $result['away_team_goals'] = $p->away_team_goals;
+            $result['exact_score']     = $p->exact_score;
         }
 
         return $result;
