@@ -16,7 +16,7 @@ class SyncGameForecast extends Command
                             {--page= : Fetch only this specific page (omit to fetch all pages)}
                             {--page-size=50 : Events per page (max 50)}';
 
-    protected $description = 'Fetch events & predictions from GameForecastAPI and store in database';
+    protected $description = 'Fetch UPCOMING events & predictions from GameForecastAPI';
 
     private string $apiKey;
     private array $headers;
@@ -33,7 +33,7 @@ class SyncGameForecast extends Command
         $leaguesSynced = $this->syncLeagues();
         $this->line("  → {$leaguesSynced} leagues upserted");
 
-        $this->info('Syncing events...');
+        $this->info('Syncing UPCOMING events...');
         [$eventsSynced, $predictionsSynced] = $this->syncEvents();
         $this->line("  → {$eventsSynced} events upserted");
         $this->line("  → {$predictionsSynced} predictions upserted");
@@ -77,7 +77,7 @@ class SyncGameForecast extends Command
     private function syncEvents(): array
     {
         $pageSize   = min(50, (int) $this->option('page-size'));
-        $fixedPage  = $this->option('page'); // null when not provided
+        $fixedPage  = $this->option('page');
 
         $totalEvents = 0;
         $totalPreds  = 0;
@@ -89,8 +89,10 @@ class SyncGameForecast extends Command
             try {
                 $response = Http::withHeaders($this->headers)
                     ->get('https://game-forecast-api.p.rapidapi.com/events', [
-                        'page'      => $page,
-                        'page_size' => $pageSize,
+                        'page'        => $page,
+                        'page_size'   => $pageSize,
+                        'from'        => now()->toIso8601String(), // ✅ fetch future
+                        'status'      => 'not_started',            // ✅ filter upcoming
                     ]);
             } catch (ConnectionException $e) {
                 $this->error('Connection failed: ' . $e->getMessage());
@@ -108,8 +110,6 @@ class SyncGameForecast extends Command
             $totalEvents += $evCount;
             $totalPreds  += $prCount;
 
-            // Stop after one page when --page was explicitly given,
-            // otherwise continue until a page comes back with fewer items than requested.
             $hasMore = $fixedPage === null && count($events) === $pageSize;
             $page++;
 
@@ -124,6 +124,13 @@ class SyncGameForecast extends Command
         $predCount  = 0;
 
         foreach ($events as $apiEvent) {
+
+            // ✅ Fallback filter (VERY IMPORTANT)
+            if (!empty($apiEvent['start_at']) &&
+                strtotime($apiEvent['start_at']) <= now()->timestamp) {
+                continue; // skip past/finished games
+            }
+
             $league = GfLeague::firstOrCreate(
                 ['external_id' => $apiEvent['league']['id']],
                 ['name' => $apiEvent['league']['name']]
@@ -133,6 +140,7 @@ class SyncGameForecast extends Command
                 ['external_id' => $apiEvent['team_home']['id']],
                 ['name' => $apiEvent['team_home']['name']]
             );
+
             $awayTeam = GfTeam::updateOrCreate(
                 ['external_id' => $apiEvent['team_away']['id']],
                 ['name' => $apiEvent['team_away']['name']]
@@ -153,6 +161,7 @@ class SyncGameForecast extends Command
                     'synced_at'      => now(),
                 ]
             );
+
             $eventCount++;
 
             $p = $apiEvent['predictions'][0] ?? null;
