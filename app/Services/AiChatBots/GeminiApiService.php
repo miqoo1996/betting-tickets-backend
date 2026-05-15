@@ -37,7 +37,7 @@ class GeminiApiService implements AiChatBotInterface
             'contents' => [
                 [
                     'parts' => [
-                        ['text' => $prompt]
+                        ['text' => trim($prompt)]
                     ]
                 ]
             ]

@@ -29,5 +29,10 @@ class SportsMatch extends Model
     {
         return $this->hasMany(MatchOdd::class, 'match_id');
     }
+
+    public function predictions(): HasMany
+    {
+        return $this->hasMany(\App\Models\AiPrediction::class, 'sports_match_id');
+    }
 }
 

@@ -35,6 +35,8 @@ class OddsController extends Controller
                     $query->where('bookmaker_name', 'LIKE', "%{$bookmaker}%");
                 }
             }]);
+        // also eager load predictions
+        $query->with('predictions');
 
         // Filter by league if specified
         if ($league) {
@@ -98,6 +100,7 @@ class OddsController extends Controller
                 'date' => $match->commence_time->format('Y-m-d H:i'),
                 'status' => $match->status,
                 'odds' => $odds,
+                'ai_prediction' => optional($match->predictions->sortByDesc('created_at')->first())->response,
             ];
         });
 
