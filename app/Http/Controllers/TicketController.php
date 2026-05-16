@@ -95,6 +95,7 @@ class TicketController extends Controller
             $ticket->stake = $validated['stake'];
             $ticket->total_odds = $validated['total_odds'];
             $ticket->potential_winning = $validated['potential_winning'];
+            $ticket->commence_time = $this->computeCommenceTime($validated['bets']);
             $ticket->notes = $validated['notes'] ?? null;
             $ticket->status = 'pending';
             $ticket->ticket_number = Ticket::generateTicketNumber();
@@ -112,6 +113,26 @@ class TicketController extends Controller
                 'message' => 'Failed to save ticket: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    protected function computeCommenceTime(array $bets): ?string
+    {
+        $times = array_filter(array_map(function ($bet) {
+            return $bet['commence_time'] ?? $bet['matchDate'] ?? $bet['match_date'] ?? null;
+        }, $bets));
+
+        if (empty($times)) {
+            return null;
+        }
+
+        $dates = array_map(function ($time) {
+            $date = new \DateTime($time);
+            return $date->format('Y-m-d H:i:s');
+        }, $times);
+
+        sort($dates);
+
+        return $dates[0];
     }
 
     /**

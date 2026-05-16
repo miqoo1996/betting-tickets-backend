@@ -15,6 +15,7 @@ class Ticket extends Model
         'stake',
         'total_odds',
         'potential_winning',
+        'commence_time',
         'status',
         'ticket_number',
         'notes',
@@ -25,6 +26,7 @@ class Ticket extends Model
         'stake' => 'decimal:2',
         'total_odds' => 'decimal:4',
         'potential_winning' => 'decimal:2',
+        'commence_time' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
