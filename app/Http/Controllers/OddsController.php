@@ -18,6 +18,7 @@ class OddsController extends Controller
         $bookmaker = $request->get('bookmaker');
         $dateFrom = $request->get('date_from');
         $dateTo = $request->get('date_to');
+        $showPast = $request->boolean('show_past', false);
         $sortBy = $request->get('sort_by', 'commence_time');
         $sortOrder = $request->get('sort_order', 'asc');
         $limit = $request->get('limit', 20);
@@ -59,6 +60,10 @@ class OddsController extends Controller
 
         if ($dateTo) {
             $query->whereDate('commence_time', '<=', $dateTo);
+        }
+
+        if (! $showPast) {
+            $query->where('commence_time', '>=', now());
         }
 
         // Sorting

@@ -24,8 +24,7 @@ class SyncAiPredictions extends Command
             ->whereDoesntHave('predictions', function ($query) {
                 $query
                     ->where('synced_at', '>', now()->subHours(4)->toDateTimeString());
-            })
-            ->orderByDesc('id');
+            });
 
         if ($featuredOnly) {
             $query->where('commence_time', '>', now());
