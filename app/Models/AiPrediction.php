@@ -15,11 +15,13 @@ class AiPrediction extends Model
         'response',
         'success',
         'meta',
+        'synced_at'
     ];
 
     protected $casts = [
         'meta' => 'array',
         'success' => 'boolean',
+        'synced_at' => 'datetime',
     ];
 
     public function match(): BelongsTo

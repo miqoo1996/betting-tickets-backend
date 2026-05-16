@@ -19,8 +19,12 @@ class SyncAiPredictions extends Command
         $featuredOnly = $this->option('featured-only');
 
         $query = SportsMatch::query()
-            ->where('status', 'scheduled')
             ->with(['odds'])
+            ->where('status', 'scheduled')
+            ->whereDoesntHave('predictions', function ($query) {
+                $query
+                    ->where('synced_at', '>', now()->subHours(4)->toDateTimeString());
+            })
             ->orderByDesc('id');
 
         if ($featuredOnly) {
@@ -70,17 +74,14 @@ class SyncAiPredictions extends Command
                 continue;
             }
 
-            AiPrediction::create([
+            AiPrediction::query()->updateOrCreate(['sports_match_id' => $match->id], [
                 'sports_match_id' => $match->id,
                 'prompt' => trim($prompt),
                 'response' => trim($response['response']),
                 'success' => $response['success'],
                 'meta' => $response['raw'] ?? ['error' => $response['error'] ?? null],
+                'synced_at' => now()
             ]);
-
-            // optional: update match synced_at
-            $match->synced_at = now();
-            $match->save();
         }
 
         $this->info('AI sync completed.');
