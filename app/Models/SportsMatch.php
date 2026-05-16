@@ -32,7 +32,7 @@ class SportsMatch extends Model
 
     public function predictions(): HasMany
     {
-        return $this->hasMany(\App\Models\AiPrediction::class, 'sports_match_id');
+        return $this->hasMany(AiPrediction::class, 'sports_match_id');
     }
 }
 
